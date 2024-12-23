@@ -1,0 +1,47 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+	<TargetFrameworks>net4.8;net8.0</TargetFrameworks>
+	<ImplicitUsings>enable</ImplicitUsings>
+	<Nullable>enable</Nullable>
+
+	<IsPackable>false</IsPackable>
+	<IsTestProject>true</IsTestProject>
+	  <LangVersion>10.0</LangVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+	<PackageReference Include="coverlet.collector" Version="6.0.2">
+	  <PrivateAssets>all</PrivateAssets>
+	  <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+	</PackageReference>
+	<PackageReference Include="FluentAssertions" Version="7.0.0" />
+	<PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
+	<PackageReference Include="NUnit" Version="4.3.0" />
+	<PackageReference Include="NUnit.Analyzers" Version="4.4.0">
+	  <PrivateAssets>all</PrivateAssets>
+	  <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+	</PackageReference>
+	<PackageReference Include="NUnit3TestAdapter" Version="4.6.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+	<ProjectReference Include="..\..\src\Tradez.Sqlite\Tradez.Sqlite.csproj" />
+	<Reference Include="Biehler.IbFlexReader">
+	  <HintPath>..\..\lib\net48\Biehler.IbFlexReader.dll</HintPath>
+	</Reference>
+	  <Reference Include="IbFlexReader.Contracts">
+		  <HintPath>..\..\lib\net48\IbFlexReader.Contracts.dll</HintPath>
+	  </Reference>
+
+  </ItemGroup>
+	
+	<ItemGroup>
+	<Using Include="NUnit.Framework" />
+  </ItemGroup>
+
+  <ItemGroup>
+	<Folder Include="testfiles\" />
+  </ItemGroup>
+
+</Project>
