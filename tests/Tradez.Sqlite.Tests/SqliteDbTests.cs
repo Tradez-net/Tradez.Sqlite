@@ -7,6 +7,8 @@ using FluentAssertions;
 using IbFlexReader.Contracts.Ib;
 using IbFlexReader.Contracts;
 using IbFlexReader;
+using Tradez.Sqlite.Tests.secret;
+using System;
 
 namespace Tradez.Sqlite.Tests
 {
@@ -34,10 +36,13 @@ namespace Tradez.Sqlite.Tests
             Database.CreateTables(TestDbPath);
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
         [Test]
         public void Can_Save_Kmi()
         {
-            var kmi = GetKMIFromXml();
+            var kmi = FlexQuery.FromFile(@"..\..\..\testfiles\kmi.xml");
 
             kmi.Should().NotBeNull();
             var db = new Database(TestDbPath);
@@ -45,11 +50,10 @@ namespace Tradez.Sqlite.Tests
 
             result.Trades.Total.Should().Be(3);
             result.Trades.New.Should().Be(3);
-
         }
 
         [Test]
-        public void Can_Get_Trades()
+        public void Can_Get_Trades_From_Db()
         {
             var db = new Database(TestDbPath);
             db.Should().NotBeNull();
@@ -57,6 +61,14 @@ namespace Tradez.Sqlite.Tests
             Can_Save_Kmi();
             db.Trades().ToList()[0].Symbol.Should().Be("KMI");
             db.Trades().Count().Should().Be(3);
+        }
+
+        [Test]
+        public void Can_Get_Statements_From_Api()
+        {
+            var statements = FlexQuery.FromApiAsync(Apikey.IbToken, Apikey.QueryId,
+                @$"..\..\..\backup\{DateTime.Now.ToShortDateString()} Backup.xml");
+            statements.Should().NotBeNull();    
         }
 
         [Test]
@@ -76,16 +88,6 @@ namespace Tradez.Sqlite.Tests
             db.CreateTable<CashReportCurrency>();
             db.CreateTable<FxTransaction>();
             db.CreateTable<Transfer>();
-        }
-
-        public static FlexStatements GetKMIFromXml()
-        {
-            var opt = new Options();
-            opt.UseXmlReader = true;
-            var response = new Reader().
-                GetByString(@"..\..\..\testfiles\kmi.xml",
-                opt);
-            return response.FlexStatements;
         }
     }
 }

@@ -41,6 +41,7 @@
   </ItemGroup>
 
   <ItemGroup>
+	<Folder Include="backup\" />
 	<Folder Include="testfiles\" />
   </ItemGroup>
 
