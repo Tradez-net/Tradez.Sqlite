@@ -23,10 +23,10 @@ namespace Tradez.Sqlite
         /// <param name="token">Your private IB FlexQuery token.</param>
         /// <param name="queryId">The Id of your FlexQuery</param>
         /// <returns>FlexQuery Statements</returns>
-        public static async Task<FlexStatements> FromApiAsync(string token, string queryId)
+        public static async Task<FlexQueryResponse> FromApiAsync(string token, string queryId)
         {
             FlexResult flexResult = await new Reader().GetByApi(token, queryId);
-            return flexResult.FlexQueryResponse.FlexStatements;
+            return flexResult.FlexQueryResponse;
         }
 
         /// <summary>
@@ -36,10 +36,10 @@ namespace Tradez.Sqlite
         /// <param name="queryId">The Id of your FlexQuery</param>
         /// <param name="backupFullname">The full path for a backup copy of the FlexQuery xml</param>
         /// <returns>FlexQuery Statements</returns>
-        public static async Task<FlexStatements> FromApiAsync(string token, string queryId, string backupFullname)
+        public static async Task<FlexQueryResponse> FromApiAsync(string token, string queryId, string backupFullname)
         {
             FlexResult flexResult = await new Reader().GetByApi(token, queryId, backupFullname);
-            return flexResult.FlexQueryResponse.FlexStatements;
+            return flexResult.FlexQueryResponse;
         }
 
         /// <summary>
@@ -51,11 +51,11 @@ namespace Tradez.Sqlite
         /// <param name="retryCount">Count of retries in case of network failure</param>
         /// <param name="retryDelay">Timespan to wait between the retries</param>
         /// <returns>FlexQuery Statements</returns>
-        public static async Task<FlexStatements> FromApiAsync(string token, string queryId, string backupFullname,
+        public static async Task<FlexQueryResponse> FromApiAsync(string token, string queryId, string backupFullname,
             int retryCount, TimeSpan retryDelay)
         {
             FlexResult flexResult = await new Reader().GetByApi(token, queryId, backupFullname, retryCount, retryDelay.Seconds);
-            return flexResult.FlexQueryResponse.FlexStatements;
+            return flexResult.FlexQueryResponse;
         }
 
         /// <summary>

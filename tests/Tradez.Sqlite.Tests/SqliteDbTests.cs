@@ -64,9 +64,13 @@ namespace Tradez.Sqlite.Tests
         }
 
         [Test]
-        public void Can_Get_Statements_From_Api()
+        public async Task Can_Get_Statements_From_ApiAsync()
         {
-            var statements = FlexQuery.FromApiAsync(Apikey.IbToken, Apikey.QueryId,
+            // Use with your credentials and with caution
+            // espacially if it's your live depot
+            // https://www.interactivebrokers.com/campus/ibkr-api-page/flex-web-service/
+            // https://www.ibkrguides.com/clientportal/performanceandstatements/flex-web-service.htm
+            var statements = await FlexQuery.FromApiAsync(Apikey.IbToken, Apikey.QueryIdOpti,
                 @$"..\..\..\backup\{DateTime.Now.ToShortDateString()} Backup.xml");
             statements.Should().NotBeNull();    
         }
