@@ -16,24 +16,21 @@ namespace Tradez.Sqlite.Tests
     {
         private const string TestDbPath = @"..\..\..\testfiles\sqlite.db";
 
+        /// <summary>
+        /// Resets the test-db on every test
+        /// </summary>
         [SetUp]
         public void Setup()
         {
             System.IO.File.Delete(TestDbPath);
-            Can_Create_Tables();
+            Database.CreateDatabase(TestDbPath);
+            Database.CreateTables(TestDbPath);
         }
 
         [TearDown]
         public void TearDown()
         {
             
-        }
-
-        [Test]
-        public void Can_Create_Tables()
-        {
-            Database.CreateDatabase(TestDbPath);
-            Database.CreateTables(TestDbPath);
         }
 
         /// <summary>
