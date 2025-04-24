@@ -10,7 +10,7 @@ namespace Tradez.Sqlite
     /// closing trade.
     /// </summary>
     /// <remarks></remarks>
-    public class CompletedTrade
+    public class ClosedTrade
     {
         /// <summary>
         /// TradeId of the opening trade

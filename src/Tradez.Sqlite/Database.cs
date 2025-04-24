@@ -16,336 +16,368 @@ using System.Threading.Tasks;
 
 namespace Tradez.Sqlite
 {
-    /// <summary>
-    /// Database functions for managing trades and 
-    /// cashtransactions in a SQLite db.
-    /// </summary>
-    public class Database
-    {
-        private Database() { }
+	/// <summary>
+	/// Database functions for managing trades and 
+	/// cashtransactions in a SQLite db.
+	/// </summary>
+	public class Database
+	{
+		private Database() { }
 
-        private string dbPath = string.Empty;
-        public Database(string dbPath)
-        {
-            this.dbPath = dbPath;
-            // init cutom mapping without having attributs in class
-            // Trade and CashTransaaction
-            var mapping = LinqToDB.Mapping.MappingSchema.Default.GetFluentMappingBuilder();
-            mapping.Entity<Trade>()
-                .HasPrimaryKey(x => x.TradeID)
-                .HasTableName(nameof(Trade))
-                .Ignore(x => x.TradeTime)
-                .Ignore(x => x.TradeDateTime2)
-                ;
+		private string dbPath = string.Empty;
+		public Database(string dbPath)
+		{
+			this.dbPath = dbPath;
+			// init cutom mapping without having attributs in class
+			// Trade and CashTransaaction
+			var mapping = LinqToDB.Mapping.MappingSchema.Default.GetFluentMappingBuilder();
+			mapping.Entity<Trade>()
+				.HasPrimaryKey(x => x.TradeID)
+				.HasTableName(nameof(Trade))
+				.Ignore(x => x.TradeTime)
+				.Ignore(x => x.TradeDateTime2)
+				;
 
-            mapping.Entity<CashTransaction>()
-                .HasPrimaryKey(x => x.TransactionID)
-                .HasTableName(nameof(CashTransaction))
-                ;
+			mapping.Entity<CashTransaction>()
+				.HasPrimaryKey(x => x.TransactionID)
+				.HasTableName(nameof(CashTransaction))
+				;
 
-        }
+		}
 
-        public async Task<SaveResult> SaveFlex(string token, string queryId, string backupFlexFullname)
-        {
-            var flexResult  = await new Reader().GetByApi(token, queryId, backupFlexFullname, 2);
+		public async Task<SaveResult> SaveFlex(string token, string queryId, string backupFlexFullname)
+		{
+			var flexResult  = await new Reader().GetByApi(token, queryId, backupFlexFullname, 2);
 
-            return SaveFlexStatements(flexResult.FlexQueryResponse.FlexStatements);
-        }
+			return SaveFlexStatements(flexResult.FlexQueryResponse.FlexStatements);
+		}
 
-        /// <summary>
-        /// Saves all supported FlexStatements (Trade, CashTransaction) to the 
-        /// database
-        /// </summary>
-        /// <param name="token"></param>
-        /// <param name="queryId"></param>
-        /// <param name="backupFlexFullname"></param>
-        /// <returns></returns>
-        public SaveResult SaveFlexStatements(FlexStatements statements)
-        {
-            var result = new SaveResult();
-            var connection = $"Data Source = {dbPath}; Version = 3;";
-            using (var db = SQLiteTools.CreateDataConnection(connection))
-            {
-                db.BeginTransaction();
-                foreach (var statement in statements.FlexStatement)
-                {
-                    var trades = statement.Trades.Trade;
-                    var cash = (statement.CashTransactions.CashTransaction != null) ? statement.CashTransactions.CashTransaction : new System.Collections.Generic.List<CashTransaction>();
-                    result.Trades.Total += trades.Count();
-                    result.Cash.Total += cash.Count();
-
-
-                    foreach (Trade t in trades)
-                    {
-                        result.Trades.New += db.InsertOrReplace<Trade>(t);
-                    }
+		/// <summary>
+		/// Saves all supported FlexStatements (Trade, CashTransaction) to the 
+		/// database
+		/// </summary>
+		/// <param name="token"></param>
+		/// <param name="queryId"></param>
+		/// <param name="backupFlexFullname"></param>
+		/// <returns></returns>
+		public SaveResult SaveFlexStatements(FlexStatements statements)
+		{
+			var result = new SaveResult();
+			var connection = $"Data Source = {dbPath}; Version = 3;";
+			using (var db = SQLiteTools.CreateDataConnection(connection))
+			{
+				db.BeginTransaction();
+				foreach (var statement in statements.FlexStatement)
+				{
+					var trades = statement.Trades.Trade;
+					var cash = (statement.CashTransactions.CashTransaction != null) ? statement.CashTransactions.CashTransaction : new System.Collections.Generic.List<CashTransaction>();
+					result.Trades.Total += trades.Count();
+					result.Cash.Total += cash.Count();
 
 
-                    foreach (CashTransaction c in cash)
-                    {
-                        result.Cash.New += db.InsertOrReplace<CashTransaction>(c);
-                    }
-                }
-
-                db.CommitTransaction();
-            }
-
-            return result;
-        }
+					foreach (Trade t in trades)
+					{
+						result.Trades.New += db.InsertOrReplace<Trade>(t);
+					}
 
 
-        /// <summary>
-        /// All Trades in the database as IQueryable for querying through 
-        /// linq
-        /// </summary>
-        /// <returns></returns>
-        public IQueryable<Trade> Trades()
-        {
-            //using (var db = SQLiteTools.CreateDataConnection(GetConnectionString(dbPath)))
-            //{
-            //	return db.GetTable<Trade>();
-            //}
-            return new DataContext(ProviderName.SQLite, GetConnectionString(dbPath)).GetTable<Trade>();
-        }
-        public IQueryable<CashTransaction> CashTransactions()
-        {
-            //using (var db = SQLiteTools.CreateDataConnection(GetConnectionString(dbPath)))
-            //{
-            //	return db.GetTable<Trade>();
-            //}
-            return new DataContext(ProviderName.SQLite, GetConnectionString(dbPath)).
-                GetTable<CashTransaction>();
-        }
+					foreach (CashTransaction c in cash)
+					{
+						result.Cash.New += db.InsertOrReplace<CashTransaction>(c);
+					}
+				}
 
-        public long InsertCompletedTrade(IEnumerable<CompletedTrade> trades)
-        {
-            using (var db = SQLiteTools.CreateDataConnection(GetConnectionString(dbPath)))
-            {
-                var rows = db.BulkCopy(trades);
-                return rows.RowsCopied;
-            }
-        }
+				db.CommitTransaction();
+			}
 
-        public static void CreateDatabase(string dbPath)
-        {
-            var database = new SQLite.SQLiteConnection(dbPath);
-        }
+			return result;
+		}
+
+
+		/// <summary>
+		/// All Trades in the database as IQueryable for querying through 
+		/// linq
+		/// </summary>
+		/// <returns></returns>
+		public IQueryable<Trade> Trades()
+		{
+			//using (var db = SQLiteTools.CreateDataConnection(GetConnectionString(dbPath)))
+			//{
+			//	return db.GetTable<Trade>();
+			//}
+			return new DataContext(ProviderName.SQLite, GetConnectionString(dbPath)).GetTable<Trade>();
+		}
+		public IQueryable<CashTransaction> CashTransactions()
+		{
+			//using (var db = SQLiteTools.CreateDataConnection(GetConnectionString(dbPath)))
+			//{
+			//	return db.GetTable<Trade>();
+			//}
+			return new DataContext(ProviderName.SQLite, GetConnectionString(dbPath)).
+				GetTable<CashTransaction>();
+		}
+
+		public long InsertClosedTrade(IEnumerable<ClosedTrade> trades)
+		{
+			using (var db = SQLiteTools.CreateDataConnection(GetConnectionString(dbPath)))
+			{
+				var rows = db.BulkCopy(trades);
+				return rows.RowsCopied;
+			}
+		}
+
+		public static void CreateDatabase(string dbPath)
+		{
+			var database = new SQLite.SQLiteConnection(dbPath);
+		}
 
 #if DEBUG
-        /// <summary>
-        /// Usefull for creating an sql create statement
-        /// </summary>
-        /// <typeparam name="Ttable"></typeparam>
-        public void CreateTable<Ttable>()
-        {
-            var database = new SQLite.SQLiteConnection(dbPath);
-            database.CreateTable<Ttable>();
-        }
+		/// <summary>
+		/// Usefull for creating an sql create statement
+		/// </summary>
+		/// <typeparam name="Ttable"></typeparam>
+		public void CreateTable<Ttable>()
+		{
+			var database = new SQLite.SQLiteConnection(dbPath);
+			database.CreateTable<Ttable>();
+		}
 #endif
 
-        /// <summary>
-        /// Creates the tables "Trades" and "CashTransaction"
-        /// if not existing within the database file
-        /// </summary>
-        /// <param name="dbPath">Fullname of the database file</param>
-        public static void CreateTables(string dbPath)
-        {
-            using (var db = SQLiteTools.CreateDataConnection(GetConnectionString(dbPath)))
-            {
-                db.Command.CommandText = SqlCreateTableCash;
-                db.Command.ExecuteNonQuery();
+		/// <summary>
+		/// Creates the tables "Trades" and "CashTransaction"
+		/// if not existing within the database file
+		/// </summary>
+		/// <param name="dbPath">Fullname of the database file</param>
+		public static void CreateTables(string dbPath)
+		{
+			using (var db = SQLiteTools.CreateDataConnection(GetConnectionString(dbPath)))
+			{
+				db.Command.CommandText = SqlCreateTableCash;
+				db.Command.ExecuteNonQuery();
 
-                db.Command.CommandText = SqlCreateTableTrades;
-                db.Command.ExecuteNonQuery();
+				db.Command.CommandText = SqlCreateTableTrade;
+				db.Command.ExecuteNonQuery();
 
-            }
-        }
+			}
+		}
 
-        /// <summary>
-        /// Drops the tables "Trades" and "CashTransaction"
-        /// from the database file
-        /// </summary>
-        /// <param name="dbPath">Fullname of the database file</param>
-        public static void DropTables(string dbPath)
-        {
-            using (var db = SQLiteTools.CreateDataConnection(GetConnectionString(dbPath)))
-            {
-                db.Command.CommandText = "DROP TABLE IF EXISTS 'Trade'";
-                db.Command.ExecuteNonQuery();
+		/// <summary>
+		/// Drops the tables "Trades" and "CashTransaction"
+		/// from the database file
+		/// </summary>
+		/// <param name="dbPath">Fullname of the database file</param>
+		public static void DropTables(string dbPath)
+		{
+			using (var db = SQLiteTools.CreateDataConnection(GetConnectionString(dbPath)))
+			{
+				db.Command.CommandText = "DROP TABLE IF EXISTS 'Trade'";
+				db.Command.ExecuteNonQuery();
 
-                db.Command.CommandText = "DROP TABLE IF EXISTS 'CashTransaction'"; 
-                db.Command.ExecuteNonQuery();
+				db.Command.CommandText = "DROP TABLE IF EXISTS 'CashTransaction'"; 
+				db.Command.ExecuteNonQuery();
 
-            }
-        }
+			}
+		}
 
-        /// <summary>
-        /// Returns the count of all tables of the
-        /// database file
-        /// </summary>
-        /// <param name="dbPath"></param>
-        /// <returns></returns>
-        public static long TableCount(string dbPath)
-        {
-            using (var db = SQLiteTools.CreateDataConnection(GetConnectionString(dbPath)))
-            {
-                db.Command.CommandText = "Select Count(*) FROM sqlite_master where type='table';";
-                return (long) db.Command.ExecuteScalar();
-            }
-        }
+		/// <summary>
+		/// Returns the count of all tables of the
+		/// database file
+		/// </summary>
+		/// <param name="dbPath"></param>
+		/// <returns></returns>
+		public static long TableCount(string dbPath)
+		{
+			using (var db = SQLiteTools.CreateDataConnection(GetConnectionString(dbPath)))
+			{
+				db.Command.CommandText = "Select Count(*) FROM sqlite_master where type='table';";
+				return (long) db.Command.ExecuteScalar();
+			}
+		}
 
-        /// <summary>
-        /// Creates the connectionsstring for a SQLite 3
-        /// database from the database fullname
-        /// </summary>
-        /// <param name="dbPath">Fullname of the database file</param>
-        /// <returns></returns>
-        private static string GetConnectionString(string dbPath)
-        {
-            return  $"Data Source = {dbPath}; Version = 3;";
-        }
+		/// <summary>
+		/// Creates the connectionsstring for a SQLite 3
+		/// database from the database fullname
+		/// </summary>
+		/// <param name="dbPath">Fullname of the database file</param>
+		/// <returns></returns>
+		private static string GetConnectionString(string dbPath)
+		{
+			return  $"Data Source = {dbPath}; Version = 3;";
+		}
 
-        /// <summary>
-        /// Handtuned SQL for creating Trade-Tab.
-        /// Insert TradeId as PK and changed datatypes to Sqlite types
-        /// </summary>
-        /// <remarks>Date and Datetime columns should have DATE or DATETIME
-        /// type. Otherwise System.Data.SQLite is not working see:<see cref="https://stackoverflow.com/questions/44298684/sqlite-not-storing-decimals-correctly/44312936#44312936"/></remarks>
-        private const string SqlCreateTableTrades = @"CREATE TABLE ""Trade"" (
-    ""AccruedInterest"" REAL,
-    ""AccountId"" TEXT,
-    ""AcctAlias"" TEXT,
-    ""AssetCategory"" INTEGER,
-    ""BrokerageOrderID"" TEXT,
-    ""BuySell"" INTEGER,
-    ""ChangeInPrice"" REAL,
-    ""ChangeInQuantity"" REAL,
-    ""ClearingFirmID"" TEXT,
-    ""ClosePrice"" REAL,
-    ""CommodityType"" TEXT,
-    ""Conid"" INTEGER,
-    ""Cost"" REAL,
-    ""Currency"" INTEGER,
-    ""Cusip"" TEXT,
-    ""DeliveryType"" TEXT,
-    ""Description"" TEXT,
-    ""Exchange"" TEXT,
-    ""ExchOrderId"" TEXT,
-    ""Expiry"" DATETIME,
-    ""ExtExecID"" TEXT,
-    ""FifoPnlRealized"" REAL,
-    ""Fineness"" TEXT,
-    ""FxPnl"" REAL,
-    ""FxRateToBase"" REAL,
-    ""HoldingPeriodDateTime"" DATETIME,
-    ""IbCommission"" REAL,
-    ""IbCommissionCurrency"" INTEGER,
-    ""IbExecID"" TEXT,
-    ""IbOrderID"" INTEGER,
-    ""IsAPIOrder"" TEXT,
-    ""Isin"" TEXT,
-    ""Issuer"" TEXT,
-    ""LevelOfDetail"" TEXT,
-    ""ListingExchange"" TEXT,
-    ""Model"" TEXT,
-    ""Multiplier"" INTEGER,
-    ""MtmPnl"" REAL,
-    ""NetCash"" REAL,
-    ""Notes"" INTEGER,
-    ""OpenCloseIndicator"" INTEGER,
-    ""OpenDateTime"" DATETIME,
-    ""OrderReference"" TEXT,
-    ""OrderTime"" DATETIME,
-    ""OrderType"" TEXT,
-    ""OrigOrderID"" INTEGER,
-    ""OrigTradeDate"" DATE,
-    ""OrigTradeID"" INTEGER,
-    ""OrigTradePrice"" REAL,
-    ""PrincipalAdjustFactor"" TEXT,
-    ""Proceeds"" REAL,
-    ""PutCall"" INTEGER,
-    ""Quantity"" REAL,
-    ""ReportDate"" DATE,
-    ""SecurityID"" TEXT,
-    ""SecurityIDType"" TEXT,
-    ""SerialNumber"" TEXT,
-    ""SettleDateTarget"" TEXT,
-    ""Strike"" REAL,
-    ""Symbol"" TEXT,
-    ""Taxes"" REAL,
-    ""TraderID"" TEXT,
-    ""TradeDate"" DATE,
-    ""TradeDateTime"" DATETIME,
-    ""TradeID"" INTEGER,
-    ""TradeMoney"" REAL,
-    ""TradePrice"" REAL,
-    ""TransactionID"" INTEGER,
-    ""TransactionType"" TEXT,
-    ""UnderlyingConid"" INTEGER,
-    ""UnderlyingListingExchange"" TEXT,
-    ""UnderlyingSecurityID"" TEXT,
-    ""UnderlyingSymbol"" TEXT,
-    ""VolatilityOrderLink"" TEXT,
-    ""Weight"" TEXT,
-    ""WhenRealized"" DATETIME,
-    ""WhenReopened"" DATETIME,
-    PRIMARY KEY(""TradeID"")
+		/// <summary>
+		/// Compact View of a trade for using it in python.
+		/// There are some additional fields that facilitate calculations
+		/// and groupings
+		/// </summary>
+		private const string SqlCreateTableTrades = @"CREATE VIEW ""Trades"" AS SELECT 
+		TradeId,
+		ConId,
+		AccountId,
+		Description, 
+		Symbol, 
+		UnderlyingSymbol,
+		Quantity, 
+		TradePrice, 
+		ReportDate, 
+		TradeDateTime, 
+		NetCash, 
+		FxRateToBase, 
+		NetCash*FxRateToBase as Euro, 
+		IbCommission, 
+		OpenCloseIndicator, 
+		BuySell, 
+		AssetCategory,
+		Expiry,
+		(OpenCloseIndicator == 1) as IsOpenPosition,
+		(Notes == 1 || Notes == 16384) as IsExpired,
+		(BuySell == 0) as IsBuy,
+		SettleDateTarget,
+		Proceeds,
+		iif(OpenCloseIndicator == 1, ""O"",""C"") as Code
+FROM Trade";
+
+		/// <summary>
+		/// Handtuned SQL for creating Trade-Tab.
+		/// Insert TradeId as PK and changed datatypes to Sqlite types
+		/// </summary>
+		/// <remarks>Date and Datetime columns should have DATE or DATETIME
+		/// type. Otherwise System.Data.SQLite is not working see:<see cref="https://stackoverflow.com/questions/44298684/sqlite-not-storing-decimals-correctly/44312936#44312936"/></remarks>
+		private const string SqlCreateTableTrade = @"CREATE TABLE ""Trade"" (
+	""AccruedInterest"" REAL,
+	""AccountId"" TEXT,
+	""AcctAlias"" TEXT,
+	""AssetCategory"" INTEGER,
+	""BrokerageOrderID"" TEXT,
+	""BuySell"" INTEGER,
+	""ChangeInPrice"" REAL,
+	""ChangeInQuantity"" REAL,
+	""ClearingFirmID"" TEXT,
+	""ClosePrice"" REAL,
+	""CommodityType"" TEXT,
+	""Conid"" INTEGER,
+	""Cost"" REAL,
+	""Currency"" INTEGER,
+	""Cusip"" TEXT,
+	""DeliveryType"" TEXT,
+	""Description"" TEXT,
+	""Exchange"" TEXT,
+	""ExchOrderId"" TEXT,
+	""Expiry"" DATETIME,
+	""ExtExecID"" TEXT,
+	""FifoPnlRealized"" REAL,
+	""Fineness"" TEXT,
+	""FxPnl"" REAL,
+	""FxRateToBase"" REAL,
+	""HoldingPeriodDateTime"" DATETIME,
+	""IbCommission"" REAL,
+	""IbCommissionCurrency"" INTEGER,
+	""IbExecID"" TEXT,
+	""IbOrderID"" INTEGER,
+	""IsAPIOrder"" TEXT,
+	""Isin"" TEXT,
+	""Issuer"" TEXT,
+	""LevelOfDetail"" TEXT,
+	""ListingExchange"" TEXT,
+	""Model"" TEXT,
+	""Multiplier"" INTEGER,
+	""MtmPnl"" REAL,
+	""NetCash"" REAL,
+	""Notes"" INTEGER,
+	""OpenCloseIndicator"" INTEGER,
+	""OpenDateTime"" DATETIME,
+	""OrderReference"" TEXT,
+	""OrderTime"" DATETIME,
+	""OrderType"" TEXT,
+	""OrigOrderID"" INTEGER,
+	""OrigTradeDate"" DATE,
+	""OrigTradeID"" INTEGER,
+	""OrigTradePrice"" REAL,
+	""PrincipalAdjustFactor"" TEXT,
+	""Proceeds"" REAL,
+	""PutCall"" INTEGER,
+	""Quantity"" REAL,
+	""ReportDate"" DATE,
+	""SecurityID"" TEXT,
+	""SecurityIDType"" TEXT,
+	""SerialNumber"" TEXT,
+	""SettleDateTarget"" TEXT,
+	""Strike"" REAL,
+	""Symbol"" TEXT,
+	""Taxes"" REAL,
+	""TraderID"" TEXT,
+	""TradeDate"" DATE,
+	""TradeDateTime"" DATETIME,
+	""TradeID"" INTEGER,
+	""TradeMoney"" REAL,
+	""TradePrice"" REAL,
+	""TransactionID"" INTEGER,
+	""TransactionType"" TEXT,
+	""UnderlyingConid"" INTEGER,
+	""UnderlyingListingExchange"" TEXT,
+	""UnderlyingSecurityID"" TEXT,
+	""UnderlyingSymbol"" TEXT,
+	""VolatilityOrderLink"" TEXT,
+	""Weight"" TEXT,
+	""WhenRealized"" DATETIME,
+	""WhenReopened"" DATETIME,
+	PRIMARY KEY(""TradeID"")
 );";
 
-        /// <summary>
-        /// Handtuned SQL for creating CashTransaction-Tab.
-        /// Insert TransactionID as PK and changed datatypes to Sqlite types
-        /// </summary>
-        /// <remarks>Date and Datetime columns should have DATE or DATETIME
-        /// type. Otherwise System.Data.SQLite is not working see:<see cref="https://stackoverflow.com/questions/44298684/sqlite-not-storing-decimals-correctly/44312936#44312936"/></remarks>
-        private const string SqlCreateTableCash = @"CREATE TABLE IF NOT EXISTS ""CashTransaction"" (
-    ""AccountId""	TEXT,
-    ""AcctAlias""	TEXT,
-    ""Model""	TEXT,
-    ""Currency""	INTEGER,
-    ""FxRateToBase""	REAL,
-    ""AssetCategory""	INTEGER,
-    ""Symbol""	TEXT,
-    ""Description""	TEXT,
-    ""Conid""	INTEGER,
-    ""SecurityID""	TEXT,
-    ""SecurityIDType""	TEXT,
-    ""Cusip""	TEXT,
-    ""Isin""	TEXT,
-    ""ListingExchange""	TEXT,
-    ""UnderlyingConid""	INTEGER,
-    ""UnderlyingSymbol""	TEXT,
-    ""UnderlyingSecurityID""	TEXT,
-    ""UnderlyingListingExchange""	TEXT,
-    ""Issuer""	TEXT,
-    ""Multiplier""	INTEGER,
-    ""Strike""	REAL,
-    ""Expiry""	DATETIME,
-    ""PutCall""	INTEGER,
-    ""PrincipalAdjustFactor""	TEXT,
-    ""DateTime""	DATETIME,
-    ""Amount""	REAL,
-    ""Type""	INTEGER,
-    ""TradeID""	INTEGER,
-    ""Code""	TEXT,
-    ""TransactionID""	INTEGER,
-    ""ReportDate""	DATE,
-    ""ClientReference""	TEXT,
-    ""SettleDate""	DATE,
-    ""SerialNumber"" TEXT,
-    ""DeliveryType"" TEXT,
-    ""CommodityType"" TEXT,
-    ""Fineness"" TEXT,
-    ""Weight"" TEXT,
-    ""LevelOfDetail"" TEXT,
-    PRIMARY KEY(""TransactionID"")
+		/// <summary>
+		/// Handtuned SQL for creating CashTransaction-Tab.
+		/// Insert TransactionID as PK and changed datatypes to Sqlite types
+		/// </summary>
+		/// <remarks>Date and Datetime columns should have DATE or DATETIME
+		/// type. Otherwise System.Data.SQLite is not working see:<see cref="https://stackoverflow.com/questions/44298684/sqlite-not-storing-decimals-correctly/44312936#44312936"/></remarks>
+		private const string SqlCreateTableCash = @"CREATE TABLE IF NOT EXISTS ""CashTransaction"" (
+	""AccountId""	TEXT,
+	""AcctAlias""	TEXT,
+	""Model""	TEXT,
+	""Currency""	INTEGER,
+	""FxRateToBase""	REAL,
+	""AssetCategory""	INTEGER,
+	""Symbol""	TEXT,
+	""Description""	TEXT,
+	""Conid""	INTEGER,
+	""SecurityID""	TEXT,
+	""SecurityIDType""	TEXT,
+	""Cusip""	TEXT,
+	""Isin""	TEXT,
+	""ListingExchange""	TEXT,
+	""UnderlyingConid""	INTEGER,
+	""UnderlyingSymbol""	TEXT,
+	""UnderlyingSecurityID""	TEXT,
+	""UnderlyingListingExchange""	TEXT,
+	""Issuer""	TEXT,
+	""Multiplier""	INTEGER,
+	""Strike""	REAL,
+	""Expiry""	DATETIME,
+	""PutCall""	INTEGER,
+	""PrincipalAdjustFactor""	TEXT,
+	""DateTime""	DATETIME,
+	""Amount""	REAL,
+	""Type""	INTEGER,
+	""TradeID""	INTEGER,
+	""Code""	TEXT,
+	""TransactionID""	INTEGER,
+	""ReportDate""	DATE,
+	""ClientReference""	TEXT,
+	""SettleDate""	DATE,
+	""SerialNumber"" TEXT,
+	""DeliveryType"" TEXT,
+	""CommodityType"" TEXT,
+	""Fineness"" TEXT,
+	""Weight"" TEXT,
+	""LevelOfDetail"" TEXT,
+	PRIMARY KEY(""TransactionID"")
 );";
-        private const string SqlCreateTableCompletedTrade = @"CREATE TABLE ""CompletedTrade"" (
+		private const string SqlCreateTableClosedTrade = @"CREATE TABLE ""ClosedTrade"" (
 ""OpenTradeId"" INTEGER ,
 ""CloseTradeId"" INTEGER ,
 ""Quantity"" REAL )";
-        
-        private const string SqlCreateTableCashReportCurrency = @"CREATE TABLE ""CashReportCurrency"" (
+		
+		private const string SqlCreateTableCashReportCurrency = @"CREATE TABLE ""CashReportCurrency"" (
 ""AccountId"" TEXT ,
 ""AcctAlias"" TEXT ,
 ""Model"" TEXT ,
@@ -512,8 +544,8 @@ namespace Tradez.Sqlite
 ""BondInterest"" REAL ,
 ""BondInterestSec"" REAL ,
 ""BondInterestCom"" REAL )";
-        
-        private const string SqlCreateTableTransfer = @"CREATE TABLE ""Transfer"" (
+		
+		private const string SqlCreateTableTransfer = @"CREATE TABLE ""Transfer"" (
 ""AccountId"" TEXT ,
 ""AcctAlias"" TEXT ,
 ""Model"" TEXT ,
@@ -557,8 +589,8 @@ namespace Tradez.Sqlite
 ""Code"" TEXT ,
 ""ClientReference"" TEXT ,
 ""TransactionID"" INTEGER )";
-        
-        private const string SqlCreateTableFxTransaction = @"CREATE TABLE ""FxTransaction"" (
+		
+		private const string SqlCreateTableFxTransaction = @"CREATE TABLE ""FxTransaction"" (
 ""AccountId"" TEXT ,
 ""AcctAlias"" TEXT ,
 ""Model"" TEXT ,
@@ -574,8 +606,8 @@ namespace Tradez.Sqlite
 ""RealizedPL"" REAL ,
 ""Code"" TEXT ,
 ""LevelOfDetail"" TEXT )";
-        
-        private const string SqlCreateTableEquitySummaryByReportDateInBase = @"CREATE TABLE ""EquitySummaryByReportDateInBase"" (
+		
+		private const string SqlCreateTableEquitySummaryByReportDateInBase = @"CREATE TABLE ""EquitySummaryByReportDateInBase"" (
 ""AccountId"" TEXT ,
 ""AcctAlias"" TEXT ,
 ""Model"" TEXT ,
@@ -656,6 +688,6 @@ namespace Tradez.Sqlite
 ""BrokerInterestAccrualsComponentShort"" REAL ,
 ""BondInterestAccrualsComponentLong"" REAL ,
 ""BondInterestAccrualsComponentShort"" REAL )";
-        
-    }
+		
+	}
 }
