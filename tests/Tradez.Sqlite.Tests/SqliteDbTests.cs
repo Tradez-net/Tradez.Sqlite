@@ -24,7 +24,8 @@ namespace Tradez.Sqlite.Tests
         {
             System.IO.File.Delete(TestDbPath);
             Database.CreateDatabase(TestDbPath);
-            Database.CreateTables(TestDbPath);
+            var db = new Database(TestDbPath);
+            db.CreateTables();
         }
 
         [TearDown]
@@ -75,8 +76,9 @@ namespace Tradez.Sqlite.Tests
         [Test]
         public void Can_Drop_Tables()
         {
-            Database.DropTables(TestDbPath);
-            Database.TableCount(TestDbPath).Should().Be(0);
+            var db = new Database(TestDbPath);
+            db.DropTables();
+            db.TableCount(TestDbPath).Should().Be(0);
         }
 
         /// <summary>
@@ -86,9 +88,9 @@ namespace Tradez.Sqlite.Tests
         public void Can_Create_Single_Table()
         {
             var db = new Database(TestDbPath);
-            db.CreateTable<CashReportCurrency>();
-            db.CreateTable<FxTransaction>();
-            db.CreateTable<Transfer>();
+            Database.CreateTable<CashReportCurrency>(TestDbPath);
+            Database.CreateTable<FxTransaction>(TestDbPath);
+            Database.CreateTable<Transfer>(TestDbPath);
         }
     }
 }

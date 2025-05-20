@@ -166,23 +166,20 @@ namespace Tradez.Sqlite
             database.DropTable<Ttable>();
         }
 #endif
-
+        /// <summary>
+        /// Creates all tables and views of the database
+        /// </summary>
         public void CreateTables()
         {
             using (var db = new DataConnection(options))
             {
-                db.Execute(SqlCreateTableTrade);
+                foreach(string s in TableStatements.Values) {
+                    db.Execute(s);
+                };
+                foreach(string s in ViewStatements.Values) {
+                    db.Execute(s);
+                };
             }
-        }
-
-        /// <summary>
-        /// Creates the tables "Trades" and "CashTransaction"
-        /// if not existing within the database file
-        /// </summary>
-        /// <param name="dbPath">Fullname of the database file</param>
-        public static void CreateTables(string dbPath)
-        {
-            
         }
 
         /// <summary>
@@ -190,11 +187,21 @@ namespace Tradez.Sqlite
         /// from the database file
         /// </summary>
         /// <param name="dbPath">Fullname of the database file</param>
-        public static void DropTables(string dbPath)
+        public void DropTables()
         {
-            DropTable<CashReportCurrency>(dbPath);
-            DropTable<FxTransaction>(dbPath);
-            DropTable<Transfer>(dbPath);
+            using (var db = new DataConnection(options))
+            {
+                foreach (string s in TableStatements.Keys)
+                {
+                    db.Execute($"DROP TABLE {s}");
+                }
+                ;
+                foreach (string s in ViewStatements.Keys)
+                {
+                    db.Execute($"DROP VIEW {s}");
+                }
+                ;
+            }
         }
 
         /// <summary>
@@ -230,7 +237,8 @@ namespace Tradez.Sqlite
         /// There are some additional fields that facilitate calculations
         /// and groupings
         /// </summary>
-        private const string SqlCreateViewTrades = @"CREATE VIEW ""Trades"" AS SELECT 
+        private Dictionary<string, string> ViewStatements = new Dictionary<string, string> {
+            {"Trades", @"CREATE VIEW ""Trades"" AS SELECT 
         TradeId,
         ConId,
         AccountId,
@@ -255,7 +263,7 @@ namespace Tradez.Sqlite
         SettleDateTarget,
         Proceeds,
         iif(OpenCloseIndicator == 1, ""O"",""C"") as Code
-FROM Trade";
+FROM Trade"} };
 
         /// <summary>
         /// Handtuned SQL for creating Trade-Tab.
@@ -263,7 +271,7 @@ FROM Trade";
         /// </summary>
         /// <remarks>Date and Datetime columns should have DATE or DATETIME
         /// type. Otherwise System.Data.SQLite is not working see:<see cref="https://stackoverflow.com/questions/44298684/sqlite-not-storing-decimals-correctly/44312936#44312936"/></remarks>
-        private const string SqlCreateTableTrade = @"CREATE TABLE ""Trade"" (
+        private Dictionary<string, string> TableStatements = new Dictionary<string, string> { { "Trade", @"CREATE TABLE ""Trade"" (
     ""AccruedInterest"" REAL,
     ""AccountId"" TEXT,
     ""AcctAlias"" TEXT,
@@ -350,15 +358,8 @@ FROM Trade";
     ""WhenRealized"" DATETIME,
     ""WhenReopened"" DATETIME,
     PRIMARY KEY(""TradeID"")
-);";
-
-        /// <summary>
-        /// Handtuned SQL for creating CashTransaction-Tab.
-        /// Insert TransactionID as PK and changed datatypes to Sqlite types
-        /// </summary>
-        /// <remarks>Date and Datetime columns should have DATE or DATETIME
-        /// type. Otherwise System.Data.SQLite is not working see:<see cref="https://stackoverflow.com/questions/44298684/sqlite-not-storing-decimals-correctly/44312936#44312936"/></remarks>
-        private const string SqlCreateTableCash = @"CREATE TABLE IF NOT EXISTS ""CashTransaction"" (
+);" } ,
+            {"CashTransaction", @"CREATE TABLE IF NOT EXISTS ""CashTransaction"" (
     ""AccountId""	TEXT,
     ""AcctAlias""	TEXT,
     ""ActionID""	TEXT,
@@ -405,13 +406,12 @@ FROM Trade";
     ""AvailableForTradingDate"" TEXT,
     ""ExDate"" TEXT,
     PRIMARY KEY(""TransactionID"")
-);";
-        private const string SqlCreateTableClosedTrade = @"CREATE TABLE ""ClosedTrade"" (
+);" },
+        {"ClosedTrade", @"CREATE TABLE ""ClosedTrade"" (
 ""OpenTradeId"" INTEGER ,
 ""CloseTradeId"" INTEGER ,
-""Quantity"" REAL )";
-        
-        private const string SqlCreateTableCashReportCurrency = @"CREATE TABLE ""CashReportCurrency"" (
+""Quantity"" REAL )"},
+            {"CashReportCurrency", @"CREATE TABLE ""CashReportCurrency"" (
 ""AccountId"" TEXT ,
 ""AcctAlias"" TEXT ,
 ""Model"" TEXT ,
@@ -577,9 +577,8 @@ FROM Trade";
 ""BrokerInterestCom"" REAL ,
 ""BondInterest"" REAL ,
 ""BondInterestSec"" REAL ,
-""BondInterestCom"" REAL )";
-        
-        private const string SqlCreateTableTransfer = @"CREATE TABLE ""Transfer"" (
+""BondInterestCom"" REAL )" },
+        {"Transfer", @"CREATE TABLE ""Transfer"" (
 ""AccountId"" TEXT ,
 ""AcctAlias"" TEXT ,
 ""Model"" TEXT ,
@@ -622,9 +621,8 @@ FROM Trade";
 ""CashTransfer"" REAL ,
 ""Code"" TEXT ,
 ""ClientReference"" TEXT ,
-""TransactionID"" INTEGER )";
-        
-        private const string SqlCreateTableFxTransaction = @"CREATE TABLE ""FxTransaction"" (
+""TransactionID"" INTEGER )" },
+            {"FxTransaction", @"CREATE TABLE ""FxTransaction"" (
 ""AccountId"" TEXT ,
 ""AcctAlias"" TEXT ,
 ""Model"" TEXT ,
@@ -639,9 +637,8 @@ FROM Trade";
 ""Cost"" REAL ,
 ""RealizedPL"" REAL ,
 ""Code"" TEXT ,
-""LevelOfDetail"" TEXT )";
-        
-        private const string SqlCreateTableEquitySummaryByReportDateInBase = @"CREATE TABLE ""EquitySummaryByReportDateInBase"" (
+""LevelOfDetail"" TEXT )" },
+            {"EquitySummaryByReportDateInBase", @"CREATE TABLE ""EquitySummaryByReportDateInBase"" (
 ""AccountId"" TEXT ,
 ""AcctAlias"" TEXT ,
 ""Model"" TEXT ,
@@ -721,7 +718,7 @@ FROM Trade";
 ""BrokerInterestAccrualsComponentLong"" REAL ,
 ""BrokerInterestAccrualsComponentShort"" REAL ,
 ""BondInterestAccrualsComponentLong"" REAL ,
-""BondInterestAccrualsComponentShort"" REAL )";
-        
+""BondInterestAccrualsComponentShort"" REAL )"} };
+
     }
 }
