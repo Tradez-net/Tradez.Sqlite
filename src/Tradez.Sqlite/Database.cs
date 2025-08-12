@@ -10,6 +10,8 @@ using LinqToDB;
 using LinqToDB.Data;
 using LinqToDB.DataProvider.SQLite;
 using LinqToDB.Mapping;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -30,15 +32,23 @@ namespace Tradez.Sqlite
     /// </summary>
     public class Database
     {
+        private readonly ILogger<Database> logger;
+
         private Database() { }
 
         private string dbPath = string.Empty;
         private DataOptions options { get; set; }
 
-        public Database(string dbPath)
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="dbPath">Path to sqlite-file</param>
+        /// <param name="logger">Optional logger</param>
+        public Database(string dbPath, ILogger<Database> logger = null)
         {
             // some example: https://medium.com/@brightoning/dotnet-using-linq2db-with-sqlite3multipleciphers-c726f474d57b
 
+            this.logger = logger ?? NullLogger<Database>.Instance;
             this.dbPath = dbPath;
             // init cutom mapping without having attributs in class
             // Trade and CashTransaaction
@@ -66,9 +76,10 @@ namespace Tradez.Sqlite
             .UseMappingSchema(mappingSchema);
         }
 
-        public async Task<SaveResult> SaveFlex(string token, string queryId, string backupFlexFullname)
+        public async Task<SaveResult> DownloadAndSaveFlexQuery(string token, string queryId, string backupFlexFullname)
         {
-            var flexResult  = await new Reader().GetByApi(token, queryId, backupFlexFullname, 2);
+            logger.LogDebug("Start download {queryId}", queryId);
+            var flexResult  = await new Reader().GetByApi(token, queryId, backupFlexFullname,2);
 
             return SaveFlexStatements(flexResult.FlexQueryResponse.FlexStatements);
         }
@@ -95,6 +106,9 @@ namespace Tradez.Sqlite
                     result.Trades.Total += trades.Count();
                     result.Cash.Total += cash.Count();
 
+                    logger.LogDebug("Save transaction trades: {countTrades}, cash: {countCash}",
+                    trades.Count(), cash.Count());
+
 
                     foreach (Trade t in trades)
                     {
@@ -110,7 +124,7 @@ namespace Tradez.Sqlite
 
                 db.CommitTransaction();
             }
-
+            logger.LogDebug("Total count saved: {count}", result);
             return result;
         }
 
